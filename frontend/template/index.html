@@ -3,25 +3,339 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>FRIP — Fractional Rental Investment Platform</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='14' fill='%230D7377'/><text x='16' y='22' text-anchor='middle' font-size='18' fill='white' font-family='monospace' font-weight='bold'>F</text></svg>">
 </head>
 <body>
-    <header>
-        <h1>Welcome</h1>
-    </header>
-    
-    <main>
-        <section>
-            <h2>Content</h2>
-            <p>Your content here</p>
-        </section>
-    </main>
-    
-    <footer>
-        <p>&copy; 2024</p>
-    </footer>
-    
-    <script src="common.js"></script>
+
+<!-- ════════════════════════════════════════════════════════════════
+     NAV
+     ════════════════════════════════════════════════════════════════ -->
+<nav class="topnav">
+    <div class="topnav-inner">
+        <a href="/" class="topnav-logo" data-link><span class="dot"></span>FRIP</a>
+        <button class="hamburger" id="hamburger" aria-label="Menu">&#9776;</button>
+        <div class="topnav-links" id="nav-links">
+            <a href="/properties-page" data-link>Properties</a>
+            <!-- logged-out -->
+            <span id="nav-guest">
+                <a href="/login" data-link>Log in</a>
+                <a href="/register" data-link class="btn-nav-primary">Get Started</a>
+            </span>
+            <!-- logged-in -->
+            <span id="nav-user" class="hidden">
+                <a href="/dashboard" data-link>Dashboard</a>
+                <a href="/admin" data-link>Admin</a>
+                <button class="btn-nav-ghost" id="btn-logout">Log out</button>
+            </span>
+        </div>
+    </div>
+</nav>
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: HOME / LANDING
+     ════════════════════════════════════════════════════════════════ -->
+<section id="page-home" class="page">
+    <div class="hero">
+        <div class="container">
+            <h1>Invest in Real Estate,<br><span>One Fraction at a Time</span></h1>
+            <p>Pool capital with other investors to own shares of premium rental properties. Earn proportional monthly income without the hassle of property management.</p>
+            <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+                <a href="/properties-page" data-link class="btn btn-primary btn-lg">Browse Properties</a>
+                <a href="/register" data-link class="btn btn-secondary btn-lg">Create Account</a>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="num" id="hero-prop-count">—</div>
+                    <div class="label">Properties Listed</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="num" id="hero-total-value">—</div>
+                    <div class="label">Total Portfolio Value</div>
+                </div>
+                <div class="hero-stat">
+                    <div class="num">8.2%</div>
+                    <div class="label">Avg. Annual Return</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="container">
+            <h2 class="section-title">Featured Properties</h2>
+            <p class="section-sub">Hand-picked investment opportunities with strong fundamentals.</p>
+            <div class="properties-grid" id="featured-grid">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section" style="padding-bottom:100px;">
+        <div class="container" style="text-align:center;">
+            <h2 class="section-title">How It Works</h2>
+            <p class="section-sub">Three simple steps to start earning rental income.</p>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:28px;margin-top:20px;">
+                <div class="card card-flat" style="text-align:center;">
+                    <div style="font-size:2.5rem;margin-bottom:12px;">🏠</div>
+                    <h3 style="font-size:1.125rem;font-weight:600;margin-bottom:8px;">1. Browse Properties</h3>
+                    <p style="color:var(--white-dim);font-size:.9rem;">Explore curated rental properties with detailed financials and projections.</p>
+                </div>
+                <div class="card card-flat" style="text-align:center;">
+                    <div style="font-size:2.5rem;margin-bottom:12px;">💰</div>
+                    <h3 style="font-size:1.125rem;font-weight:600;margin-bottom:8px;">2. Invest Your Share</h3>
+                    <p style="color:var(--white-dim);font-size:.9rem;">Choose how much to invest. Your ownership percentage is calculated automatically.</p>
+                </div>
+                <div class="card card-flat" style="text-align:center;">
+                    <div style="font-size:2.5rem;margin-bottom:12px;">📈</div>
+                    <h3 style="font-size:1.125rem;font-weight:600;margin-bottom:8px;">3. Earn Returns</h3>
+                    <p style="color:var(--white-dim);font-size:.9rem;">Receive proportional rental income payouts directly to your account.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: LOGIN
+     ════════════════════════════════════════════════════════════════ -->
+<section id="page-login" class="page">
+    <div class="auth-wrapper">
+        <div class="auth-box">
+            <h2>Welcome back</h2>
+            <p class="sub">Sign in to manage your investments.</p>
+            <div id="login-error" class="form-error"></div>
+            <form id="form-login" autocomplete="on">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input class="form-control" type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input class="form-control" type="password" id="login-password" placeholder="••••••••" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Sign In</button>
+            </form>
+            <div class="auth-toggle">
+                Don't have an account? <a href="/register" data-link>Create one</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: REGISTER
+     ════════════════════════════════════════════════════════════════ -->
+<section id="page-register" class="page">
+    <div class="auth-wrapper">
+        <div class="auth-box">
+            <h2>Create your account</h2>
+            <p class="sub">Start investing in fractional real estate today.</p>
+            <div id="register-error" class="form-error"></div>
+            <form id="form-register" autocomplete="on">
+                <div class="form-group">
+                    <label for="reg-name">Full Name</label>
+                    <input class="form-control" type="text" id="reg-name" placeholder="Jane Doe" required autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label for="reg-email">Email</label>
+                    <input class="form-control" type="email" id="reg-email" placeholder="you@example.com" required autocomplete="email">
+                </div>
+                <div class="form-group">
+                    <label for="reg-password">Password</label>
+                    <input class="form-control" type="password" id="reg-password" placeholder="Min 6 characters" required autocomplete="new-password" minlength="6">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width:100%;">Create Account</button>
+            </form>
+            <div class="auth-toggle">
+                Already have an account? <a href="/login" data-link>Sign in</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: PROPERTIES LISTING
+     ════════════════════════════════════════════════════════════════ -->
+<section id="page-properties" class="page">
+    <div class="section" style="padding-top:40px;">
+        <div class="container">
+            <h1 class="section-title">All Properties</h1>
+            <p class="section-sub">Browse every available investment opportunity.</p>
+            <div class="properties-grid" id="all-properties-grid">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: PROPERTY DETAIL
+     ════════════════════════════════════════════════════════════════ -->
+<section id="page-detail" class="page">
+    <div class="detail-hero">
+        <div class="container">
+            <a class="detail-back" href="/properties-page" data-link>← Back to Properties</a>
+            <div class="detail-grid">
+                <div>
+                    <div class="detail-img" id="detail-img"></div>
+                    <h1 class="detail-address" id="detail-address"></h1>
+                    <p class="detail-description" id="detail-desc"></p>
+                    <div class="detail-metrics" id="detail-metrics"></div>
+                    <div style="margin-bottom:16px;">
+                        <div class="progress-track"><div class="progress-fill" id="detail-progress" style="width:0%"></div></div>
+                        <div style="display:flex;justify-content:space-between;margin-top:6px;">
+                            <span class="text-muted" style="font-size:.8125rem;" id="detail-funded-label"></span>
+                            <span class="text-muted" style="font-size:.8125rem;" id="detail-remaining-label"></span>
+                        </div>
+                    </div>
+                    <div style="margin-top:40px;">
+                        <h3 class="detail-investors-title">Property Appreciation</h3>
+                        <div class="detail-appreciation-stats" id="detail-appreciation-stats"></div>
+                        <div class="dash-chart-wrap" style="max-width:100%;margin-top:16px;">
+                            <canvas id="appreciation-chart" height="220"></canvas>
+                        </div>
+                    </div>
+                    <div style="margin-top:40px;">
+                        <h3 class="detail-investors-title">Current Investors</h3>
+                        <div id="detail-investors"><p class="text-muted">No investors yet.</p></div>
+                    </div>
+                    <div style="margin-top:40px;">
+                        <h3 class="detail-investors-title">Distribution History</h3>
+                        <div id="detail-dist-history"><p class="text-muted">No distributions yet.</p></div>
+                    </div>
+                </div>
+                <div class="card invest-card" id="invest-sidebar">
+                    <h3>Invest in This Property</h3>
+                    <div id="invest-auth-msg" class="hidden" style="margin-bottom:16px;">
+                        <p class="text-muted" style="font-size:.9rem;">You need to <a href="/login" data-link>sign in</a> to invest.</p>
+                    </div>
+                    <form id="form-invest" class="hidden">
+                        <div class="form-group">
+                            <label for="invest-amount">Investment Amount ($)</label>
+                            <input class="form-control" type="number" id="invest-amount" placeholder="5,000" min="1" step="any" required>
+                        </div>
+                        <div id="invest-error" class="form-error"></div>
+                        <button type="submit" class="btn btn-primary" style="width:100%;">Confirm Investment</button>
+                    </form>
+                    <div id="invest-summary" style="margin-top:20px;font-size:.875rem;color:var(--white-dim);"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div style="height:80px;"></div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: DASHBOARD
+     ════════════════════════════════════════════════════════════════ -->
+<section id="page-dashboard" class="page">
+    <div class="dash-header">
+        <div class="container">
+            <h1>Your Portfolio</h1>
+            <p id="dash-greeting">Welcome back!</p>
+            <div class="dash-summary" id="dash-summary">
+                <div class="dash-summary-card">
+                    <div class="label">Total Invested</div>
+                    <div class="value teal" id="dash-total-invested">$0</div>
+                </div>
+                <div class="dash-summary-card">
+                    <div class="label">Est. Annual Income</div>
+                    <div class="value" id="dash-annual-income">$0</div>
+                </div>
+                <div class="dash-summary-card">
+                    <div class="label">Total Distributions</div>
+                    <div class="value" id="dash-total-distributions">$0</div>
+                </div>
+                <div class="dash-summary-card">
+                    <div class="label">Appreciation Gain</div>
+                    <div class="value" id="dash-appreciation">$0</div>
+                </div>
+                <div class="dash-summary-card">
+                    <div class="label">Overall ROI</div>
+                    <div class="value teal" id="dash-roi">0%</div>
+                </div>
+                <div class="dash-summary-card">
+                    <div class="label">Properties Held</div>
+                    <div class="value" id="dash-prop-count">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container">
+        <h2 class="dash-section-title">Portfolio Allocation</h2>
+        <div class="dash-chart-wrap">
+            <canvas id="portfolio-chart" height="260"></canvas>
+            <p id="chart-empty" class="text-muted hidden" style="text-align:center;padding:20px 0;">No investments yet. Browse properties to get started.</p>
+        </div>
+
+        <h2 class="dash-section-title">Investment Performance Over Time</h2>
+        <div class="dash-chart-wrap" style="max-width:100%;">
+            <canvas id="performance-chart" height="300"></canvas>
+            <p id="perf-chart-empty" class="text-muted hidden" style="text-align:center;padding:20px 0;">Make investments to see your performance timeline.</p>
+        </div>
+
+        <h2 class="dash-section-title">Your Holdings &amp; Appreciation</h2>
+        <div class="holdings-grid" id="holdings-grid">
+            <p class="text-muted">No holdings to show.</p>
+        </div>
+
+        <h2 class="dash-section-title">Transaction History</h2>
+        <div class="tx-table-wrap">
+            <table class="tx-table" id="tx-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Type</th>
+                        <th>Property</th>
+                        <th style="text-align:right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody id="tx-tbody">
+                    <tr><td colspan="4" class="text-muted" style="text-align:center;">No transactions yet.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     PAGE: ADMIN (Distribution)
+     ════════════════════════════════════════════════════════════════ -->
+<section id="page-admin" class="page">
+    <div class="admin-section">
+        <div class="container">
+            <h1>Admin Panel</h1>
+            <p>Manage income distributions and property valuations.</p>
+
+            <h2 class="dash-section-title" style="margin-top:32px;">Distribute Rental Income</h2>
+            <div id="admin-properties-list">
+                <div class="spinner"></div>
+            </div>
+
+            <h2 class="dash-section-title" style="margin-top:48px;">Update Property Valuations</h2>
+            <p class="text-muted" style="margin-bottom:20px;font-size:.875rem;">Set the current market value to track appreciation over time.</p>
+            <div id="admin-valuations-list">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════
+     FOOTER
+     ════════════════════════════════════════════════════════════════ -->
+<footer class="site-footer">
+    <div class="container">
+        &copy; 2026 FRIP — Fractional Rental Investment Platform. Built for demonstration purposes.
+    </div>
+</footer>
+
+<script src="/static/common.js"></script>
 </body>
 </html>
