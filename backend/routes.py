@@ -6,6 +6,7 @@ from bson import ObjectId
 from flask import Blueprint, jsonify, request, session
 
 from .db import get_db
+from .risk import calculate_risk_score, compute_twr
 
 api = Blueprint("api", __name__)
 
@@ -122,7 +123,15 @@ def auth_me():
 def list_properties():
     db = get_db()
     props = list(db.properties.find().sort("created_at", -1))
-    return jsonify([_serialize_doc(p) for p in props]), 200
+    result = []
+    for prop in props:
+        oid = prop["_id"]
+        investors  = list(db.investments.find({"property_id": oid}))
+        valuations = list(db.valuations.find({"property_id": oid}).sort("date", 1))
+        serialized = _serialize_doc(prop)
+        serialized["risk"] = calculate_risk_score(prop, investors, valuations)
+        result.append(serialized)
+    return jsonify(result), 200
 
 
 @api.route("/properties/<property_id>", methods=["GET"])
@@ -177,6 +186,9 @@ def get_property(property_id):
             "timestamp": d["timestamp"].isoformat() if hasattr(d["timestamp"], "isoformat") else str(d["timestamp"]),
         })
     result["distribution_history"] = dist_list
+
+    # Risk score
+    result["risk"] = calculate_risk_score(prop, investors, valuations)
 
     return jsonify(result), 200
 
@@ -301,6 +313,8 @@ def user_portfolio(user_id):
         total_invested += inv["amount"]
         total_estimated_annual += est_annual
         total_appreciation += user_appreciation
+        prop_investors  = list(db.investments.find({"property_id": inv["property_id"]}))
+        prop_valuations = list(db.valuations.find({"property_id": inv["property_id"]}).sort("date", 1))
         holdings.append({
             "property_id": str(inv["property_id"]),
             "address": prop["address"],
@@ -312,6 +326,7 @@ def user_portfolio(user_id):
             "user_market_share": round(user_market_share, 2),
             "user_appreciation": round(user_appreciation, 2),
             "image_url": prop.get("image_url", ""),
+            "risk": calculate_risk_score(prop, prop_investors, prop_valuations),
         })
 
     # Total earnings from distributions
@@ -325,6 +340,10 @@ def user_portfolio(user_id):
     # ROI = (distributions + appreciation) / total_invested
     total_return = total_distributions + total_appreciation
     roi_pct = round((total_return / total_invested) * 100, 2) if total_invested > 0 else 0
+
+    # Time-Weighted Return (Modified Dietz)
+    current_portfolio_value = sum(h["user_market_share"] for h in holdings)
+    twr_pct = compute_twr(investments, current_portfolio_value, total_distributions)
 
     # Performance over time: monthly invested totals from transactions
     perf_pipeline = [
@@ -369,6 +388,7 @@ def user_portfolio(user_id):
         "total_distributions": round(total_distributions, 2),
         "total_appreciation": round(total_appreciation, 2),
         "roi_pct": roi_pct,
+        "twr_pct": twr_pct,
         "holdings": holdings,
         "transactions": tx_list,
         "performance_timeline": performance_timeline,

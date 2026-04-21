@@ -194,6 +194,10 @@
                             <span class="text-muted" style="font-size:.8125rem;" id="detail-remaining-label"></span>
                         </div>
                     </div>
+                    <div style="margin-top:32px;" id="detail-risk-section">
+                        <h3 class="detail-investors-title">Risk Assessment</h3>
+                        <div id="detail-risk"></div>
+                    </div>
                     <div style="margin-top:40px;">
                         <h3 class="detail-investors-title">Property Appreciation</h3>
                         <div class="detail-appreciation-stats" id="detail-appreciation-stats"></div>
@@ -212,18 +216,41 @@
                 </div>
                 <div class="card invest-card" id="invest-sidebar">
                     <h3>Invest in This Property</h3>
+                    <p class="capacity-note" id="invest-capacity-note"></p>
                     <div id="invest-auth-msg" class="hidden" style="margin-bottom:16px;">
-                        <p class="text-muted" style="font-size:.9rem;">You need to <a href="/login" data-link>sign in</a> to invest.</p>
+                        <p class="text-muted" style="font-size:.9rem;"><a href="/login" data-link>Sign in</a> to start investing.</p>
                     </div>
                     <form id="form-invest" class="hidden">
                         <div class="form-group">
-                            <label for="invest-amount">Investment Amount ($)</label>
-                            <input class="form-control" type="number" id="invest-amount" placeholder="5,000" min="1" step="any" required>
+                            <label for="invest-amount">Amount to Invest</label>
+                            <div class="amount-input-wrap">
+                                <span class="amount-prefix">$</span>
+                                <input class="form-control amount-field" type="number" id="invest-amount" placeholder="0" min="1" step="any" required>
+                            </div>
+                            <div class="amount-presets" id="amount-presets">
+                                <button type="button" class="amount-preset-btn" data-amount="500">$500</button>
+                                <button type="button" class="amount-preset-btn" data-amount="1000">$1K</button>
+                                <button type="button" class="amount-preset-btn" data-amount="5000">$5K</button>
+                                <button type="button" class="amount-preset-btn" data-amount="10000">$10K</button>
+                            </div>
+                        </div>
+                        <div class="invest-preview hidden" id="invest-preview">
+                            <div class="invest-preview-row">
+                                <span>Projected ownership</span>
+                                <strong id="preview-ownership">—</strong>
+                            </div>
+                            <div class="invest-preview-row">
+                                <span>Est. annual income</span>
+                                <strong id="preview-annual" class="text-teal">—</strong>
+                            </div>
+                            <div class="invest-preview-row">
+                                <span>Remaining capacity</span>
+                                <strong id="preview-remaining">—</strong>
+                            </div>
                         </div>
                         <div id="invest-error" class="form-error"></div>
-                        <button type="submit" class="btn btn-primary" style="width:100%;">Confirm Investment</button>
+                        <button type="submit" class="btn btn-primary btn-lg" id="btn-invest" style="width:100%;margin-top:4px;">Confirm Investment</button>
                     </form>
-                    <div id="invest-summary" style="margin-top:20px;font-size:.875rem;color:var(--white-dim);"></div>
                 </div>
             </div>
         </div>
@@ -259,6 +286,11 @@
                 <div class="dash-summary-card">
                     <div class="label">Overall ROI</div>
                     <div class="value teal" id="dash-roi">0%</div>
+                </div>
+                <div class="dash-summary-card">
+                    <div class="label">Time-Weighted Return</div>
+                    <div class="value teal" id="dash-twr">0%</div>
+                    <div style="font-size:.7rem;color:var(--white-muted);margin-top:4px;">Removes timing bias</div>
                 </div>
                 <div class="dash-summary-card">
                     <div class="label">Properties Held</div>

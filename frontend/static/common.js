@@ -8,6 +8,7 @@
     /* ── State ──────────────────────────────────────────────────── */
     let currentUser = null;          // { user_id, name } or null
     let portfolioChart = null;       // Chart.js instance
+    let currentPropertyData = null;  // full property object for live invest preview
 
     /* ── Helpers ────────────────────────────────────────────────── */
     function $(sel, root) { return (root || document).querySelector(sel); }
@@ -57,9 +58,9 @@
     /* ── Placeholder SVG Generator ──────────────────────────────── */
     function houseSvg(variant) {
         const colors = [
-            { wall: "#1e3a5f", roof: "#0D7377", win: "#14B8A6" },
-            { wall: "#2d1b4e", roof: "#0D7377", win: "#A7F3D0" },
-            { wall: "#1a2e1a", roof: "#14B8A6", win: "#0D7377" },
+            { wall: "#1e3a5f", roof: "#6366F1", win: "#818CF8" },
+            { wall: "#1A1A26", roof: "#6366F1", win: "#C7D2FE" },
+            { wall: "#1a2e1a", roof: "#818CF8", win: "#6366F1" },
         ];
         const c = colors[(variant || 0) % colors.length];
         return '<svg viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg">' +
@@ -70,6 +71,26 @@
             '<rect x="215" y="145" width="40" height="40" rx="3" fill="' + c.win + '" opacity=".6"/>' +
             '<rect x="180" y="190" width="40" height="40" rx="2" fill="' + c.win + '" opacity=".35"/>' +
             '</svg>';
+    }
+
+    /* ── Risk Helpers ───────────────────────────────────────────── */
+    function riskClass(label) {
+        return label === "Low" ? "badge-success" : label === "Medium" ? "badge-warning" : "badge-danger";
+    }
+    function riskColor(label) {
+        return label === "Low" ? "var(--success)" : label === "Medium" ? "var(--warning)" : "var(--danger)";
+    }
+    function riskBadge(risk) {
+        if (!risk) return "";
+        return '<span class="badge ' + riskClass(risk.label) + '">' + risk.label + ' Risk</span>';
+    }
+    function riskFactorHtml(label, score) {
+        var color = score < 34 ? "var(--success)" : score < 67 ? "var(--warning)" : "var(--danger)";
+        return '<div class="risk-factor">' +
+            '<div class="risk-factor-label">' + label + '</div>' +
+            '<div class="risk-factor-val" style="color:' + color + ';">' + score + '</div>' +
+            '<div class="progress-track"><div class="progress-fill" style="width:' + score + '%;background:' + color + ';transition:width .6s;"></div></div>' +
+            '</div>';
     }
 
     /* ── Property Card HTML ─────────────────────────────────────── */
@@ -86,6 +107,7 @@
             '<div><div class="prop-card-stat-label">Monthly Income</div><div class="prop-card-stat-value">' + money(p.rental_income) + '</div></div>' +
             '</div>' +
             '<div class="progress-track"><div class="progress-fill" style="width:' + (funded * 100) + '%"></div></div>' +
+            (p.risk ? '<div style="margin-top:12px;">' + riskBadge(p.risk) + '</div>' : '') +
             '</div></div>';
     }
 
@@ -294,6 +316,7 @@
         currentPropertyId = pid;
         try {
             var p = await api("/properties/" + pid);
+            currentPropertyData = p;
             // image
             $("#detail-img").innerHTML = houseSvg(pid.charCodeAt(pid.length - 1) % 3);
             // text
@@ -332,6 +355,26 @@
                 appStats.innerHTML = '';
             }
 
+            // Risk assessment
+            var riskDiv = $("#detail-risk");
+            if (p.risk) {
+                var r = p.risk;
+                var f = r.factors;
+                riskDiv.innerHTML =
+                    '<div class="risk-header">' +
+                    '<span class="badge ' + riskClass(r.label) + '" style="font-size:.875rem;padding:6px 14px;">' + r.label + ' Risk</span>' +
+                    '<span class="risk-score-num" style="color:' + riskColor(r.label) + ';">' + r.score + '<span class="risk-score-denom"> / 100</span></span>' +
+                    '</div>' +
+                    '<div class="risk-factors-grid">' +
+                    riskFactorHtml("Volatility",    f.volatility) +
+                    riskFactorHtml("Concentration", f.concentration) +
+                    riskFactorHtml("Funding",       f.funding) +
+                    riskFactorHtml("Cap Rate",      f.cap_rate) +
+                    '</div>';
+            } else {
+                riskDiv.innerHTML = '<p class="text-muted">No risk data available.</p>';
+            }
+
             renderAppreciationChart(p.valuation_history || []);
 
             // investors list
@@ -367,17 +410,19 @@
             }
 
             // invest sidebar
+            var capNote = $("#invest-capacity-note");
+            if (capNote) capNote.textContent = money(remaining) + " remaining capacity";
             if (currentUser) {
                 $("#invest-auth-msg").classList.add("hidden");
                 $("#form-invest").classList.remove("hidden");
-                $("#invest-summary").innerHTML = "Remaining capacity: <strong>" + money(remaining) + "</strong>";
             } else {
                 $("#invest-auth-msg").classList.remove("hidden");
                 $("#form-invest").classList.add("hidden");
-                $("#invest-summary").innerHTML = "";
             }
             $("#invest-error").textContent = "";
             $("#invest-amount").value = "";
+            $("#invest-preview").classList.add("hidden");
+            $$(".amount-preset-btn").forEach(function (b) { b.classList.remove("active"); });
 
         } catch (e) {
             $("#detail-address").textContent = "Property not found";
@@ -403,12 +448,12 @@
                 datasets: [{
                     label: "Market Value",
                     data: values,
-                    borderColor: "#14B8A6",
-                    backgroundColor: "rgba(20,184,166,.12)",
+                    borderColor: "#818CF8",
+                    backgroundColor: "rgba(129,140,248,.12)",
                     fill: true,
                     tension: 0.35,
                     pointRadius: 5,
-                    pointBackgroundColor: "#14B8A6",
+                    pointBackgroundColor: "#818CF8",
                     pointBorderColor: "#1A1A2E",
                     pointBorderWidth: 2,
                 }],
@@ -426,7 +471,7 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: "#22223A", titleColor: "#F1F5F9", bodyColor: "#94A3B8",
+                        backgroundColor: "#1A1A26", titleColor: "#F1F5F9", bodyColor: "#94A3B8",
                         borderColor: "rgba(255,255,255,.1)", borderWidth: 1,
                         callbacks: { label: function (ctx) { return "$" + ctx.parsed.y.toLocaleString(); } },
                     },
@@ -441,6 +486,29 @@
             '<div class="value">' + value + '</div></div>';
     }
 
+    function updateInvestPreview() {
+        var p = currentPropertyData;
+        if (!p) return;
+        var amt = parseFloat($("#invest-amount").value);
+        var preview = $("#invest-preview");
+        if (!amt || amt <= 0) { preview.classList.add("hidden"); return; }
+        preview.classList.remove("hidden");
+        var pooled = p.total_pooled_capital || 0;
+        var myShare = amt / (pooled + amt);
+        var estAnnual = myShare * (p.rental_income || 0) * 12;
+        var remaining = p.total_value - pooled;
+        $("#preview-ownership").textContent = pct(myShare);
+        $("#preview-annual").textContent = money(estAnnual);
+        var remEl = $("#preview-remaining");
+        if (amt > remaining) {
+            remEl.style.color = "var(--danger)";
+            remEl.textContent = "Exceeds capacity";
+        } else {
+            remEl.style.color = "";
+            remEl.textContent = money(remaining - amt);
+        }
+    }
+
     /* Invest form */
     $("#form-invest").addEventListener("submit", async function (e) {
         e.preventDefault();
@@ -448,6 +516,9 @@
         errEl.textContent = "";
         var amt = parseFloat($("#invest-amount").value);
         if (!amt || amt <= 0) { errEl.textContent = "Enter a valid amount."; return; }
+        var btn = $("#btn-invest");
+        btn.disabled = true;
+        btn.textContent = "Processing…";
         try {
             await api("/investments", {
                 method: "POST",
@@ -457,7 +528,21 @@
             loadPropertyDetail(currentPropertyId);
         } catch (err) {
             errEl.textContent = err.message || "Investment failed.";
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Confirm Investment";
         }
+    });
+
+    $("#invest-amount").addEventListener("input", updateInvestPreview);
+
+    $("#amount-presets").addEventListener("click", function (e) {
+        var btn = e.target.closest(".amount-preset-btn");
+        if (!btn) return;
+        $$(".amount-preset-btn").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        $("#invest-amount").value = btn.dataset.amount;
+        updateInvestPreview();
     });
 
     /* ══════════════════════════════════════════════════════════════
@@ -485,6 +570,11 @@
             roiEl.textContent = (data.roi_pct >= 0 ? "+" : "") + data.roi_pct + "%";
             roiEl.style.color = data.roi_pct >= 0 ? "var(--teal-light)" : "var(--danger)";
 
+            // Time-Weighted Return
+            var twrEl = $("#dash-twr");
+            twrEl.textContent = (data.twr_pct >= 0 ? "+" : "") + data.twr_pct + "%";
+            twrEl.style.color = data.twr_pct >= 0 ? "var(--teal-light)" : "var(--danger)";
+
             // Portfolio allocation chart
             renderPortfolioChart(data.holdings);
 
@@ -501,7 +591,10 @@
                     var appSign = h.user_appreciation >= 0 ? "+" : "";
                     var appColor = h.user_appreciation >= 0 ? "var(--success)" : "var(--danger)";
                     hHtml += '<div class="card holding-card">' +
-                        '<div class="address">' + esc(h.address) + '</div>' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">' +
+                        '<div class="address" style="margin-bottom:0;">' + esc(h.address) + '</div>' +
+                        (h.risk ? riskBadge(h.risk) : '') +
+                        '</div>' +
                         '<div class="holding-stats">' +
                         '<div><div class="holding-stat-label">Invested</div><div class="holding-stat-value">' + money(h.amount_invested) + '</div></div>' +
                         '<div><div class="holding-stat-label">Ownership</div><div class="holding-stat-value text-teal">' + pct(h.ownership_share) + '</div></div>' +
@@ -562,22 +655,22 @@
                     {
                         label: "Total Invested",
                         data: invested,
-                        borderColor: "#0D7377",
-                        backgroundColor: "rgba(13,115,119,.15)",
+                        borderColor: "#6366F1",
+                        backgroundColor: "rgba(99,102,241,.15)",
                         fill: true,
                         tension: 0.3,
                         pointRadius: 4,
-                        pointBackgroundColor: "#0D7377",
+                        pointBackgroundColor: "#6366F1",
                     },
                     {
                         label: "Total Earned",
                         data: earned,
-                        borderColor: "#22C55E",
-                        backgroundColor: "rgba(34,197,94,.1)",
+                        borderColor: "#10B981",
+                        backgroundColor: "rgba(16,185,129,.1)",
                         fill: true,
                         tension: 0.3,
                         pointRadius: 4,
-                        pointBackgroundColor: "#22C55E",
+                        pointBackgroundColor: "#10B981",
                     },
                 ],
             },
@@ -602,7 +695,7 @@
                         labels: { color: "#94A3B8", font: { family: "'DM Sans', sans-serif", size: 12 }, usePointStyle: true },
                     },
                     tooltip: {
-                        backgroundColor: "#22223A",
+                        backgroundColor: "#1A1A26",
                         titleColor: "#F1F5F9",
                         bodyColor: "#94A3B8",
                         borderColor: "rgba(255,255,255,.1)",
@@ -634,7 +727,7 @@
             return parts[0].length > 25 ? parts[0].substring(0, 25) + "…" : parts[0];
         });
         var amounts = holdings.map(function (h) { return h.amount_invested; });
-        var bgColors = ["#0D7377", "#14B8A6", "#A7F3D0", "#065F46", "#F59E0B", "#EF4444"];
+        var bgColors = ["#6366F1", "#818CF8", "#C7D2FE", "#4F46E5", "#F59E0B", "#10B981"];
 
         portfolioChart = new Chart(canvas, {
             type: "doughnut",
@@ -664,7 +757,7 @@
                         },
                     },
                     tooltip: {
-                        backgroundColor: "#22223A",
+                        backgroundColor: "#1A1A26",
                         titleColor: "#F1F5F9",
                         bodyColor: "#94A3B8",
                         borderColor: "rgba(255,255,255,.1)",

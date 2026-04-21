@@ -7,21 +7,21 @@
 
 /* ── Tokens ─────────────────────────────────────────────────────── */
 :root {
-    --navy:        #1A1A2E;
-    --navy-light:  #22223A;
-    --navy-mid:    #2A2A45;
-    --teal:        #0D7377;
-    --teal-light:  #14B8A6;
-    --teal-glow:   rgba(13,115,119,.25);
-    --mint:        #A7F3D0;
+    --navy:        #09090F;
+    --navy-light:  #111119;
+    --navy-mid:    #1A1A26;
+    --teal:        #6366F1;
+    --teal-light:  #818CF8;
+    --teal-glow:   rgba(99,102,241,.2);
+    --mint:        #C7D2FE;
     --white:       #F1F5F9;
     --white-dim:   #94A3B8;
     --white-muted: #64748B;
     --danger:      #EF4444;
-    --success:     #22C55E;
+    --success:     #10B981;
     --warning:     #F59E0B;
-    --card-bg:     rgba(34,34,58,.65);
-    --card-border: rgba(255,255,255,.06);
+    --card-bg:     rgba(255,255,255,.04);
+    --card-border: rgba(255,255,255,.09);
     --font-body:   'DM Sans', system-ui, sans-serif;
     --font-mono:   'Space Mono', monospace;
     --radius:      12px;
@@ -72,7 +72,7 @@ body > * { position: relative; z-index: 1; }
 /* ── Top Nav ────────────────────────────────────────────────────── */
 .topnav {
     position: sticky; top: 0; z-index: 100;
-    background: rgba(26,26,46,.85);
+    background: rgba(9,9,15,.92);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--card-border);
     padding: 0 24px;
@@ -371,10 +371,83 @@ body > * { position: relative; z-index: 1; }
 /* Invest sidebar card */
 .invest-card { position: sticky; top: 88px; }
 .invest-card h3 {
-    font-size: 1.25rem; font-weight: 700; margin-bottom: 20px;
+    font-size: 1.25rem; font-weight: 700; margin-bottom: 4px;
 }
-.invest-card .min-note {
-    font-size: .8125rem; color: var(--white-muted); margin-top: -12px; margin-bottom: 20px;
+.invest-card .capacity-note {
+    font-size: .8125rem; color: var(--white-muted);
+    margin-bottom: 20px;
+}
+
+/* Amount input with $ prefix */
+.amount-input-wrap { position: relative; }
+.amount-prefix {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    color: var(--white-muted); font-family: var(--font-mono);
+    font-size: 1rem; pointer-events: none; line-height: 1;
+}
+.amount-field {
+    padding-left: 28px !important;
+    font-family: var(--font-mono) !important;
+    font-size: 1.0625rem !important;
+    font-weight: 600 !important;
+}
+
+/* Quick-select preset buttons */
+.amount-presets {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px;
+    margin-top: 10px;
+}
+.amount-preset-btn {
+    padding: 7px 0; border-radius: var(--radius-sm);
+    background: var(--navy-mid); border: 1px solid var(--card-border);
+    color: var(--white-dim); font-size: .8125rem; font-weight: 500;
+    cursor: pointer; transition: all var(--transition); text-align: center;
+}
+.amount-preset-btn:hover { background: var(--teal-glow); border-color: var(--teal); color: var(--teal-light); }
+.amount-preset-btn.active { background: var(--teal-glow); border-color: var(--teal-light); color: var(--teal-light); }
+
+/* Live investment preview panel */
+.invest-preview {
+    background: var(--navy-mid); border: 1px solid var(--card-border);
+    border-radius: var(--radius-sm); padding: 14px 16px;
+    margin: 14px 0 4px;
+}
+.invest-preview-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; font-size: .875rem;
+}
+.invest-preview-row + .invest-preview-row { border-top: 1px solid var(--card-border); }
+.invest-preview-row span { color: var(--white-muted); }
+.invest-preview-row strong { font-family: var(--font-mono); font-weight: 600; color: var(--white); }
+
+/* ── Risk Assessment ────────────────────────────────────────────── */
+.risk-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+}
+.risk-score-num {
+    font-family: var(--font-mono); font-size: 2rem; font-weight: 700; line-height: 1;
+}
+.risk-score-denom {
+    font-size: .8125rem; color: var(--white-muted);
+    font-family: var(--font-body); margin-left: 2px;
+}
+.risk-factors-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+}
+.risk-factor {
+    background: var(--navy-mid); border-radius: var(--radius-sm);
+    padding: 10px 12px;
+}
+.risk-factor-label {
+    font-size: .75rem; color: var(--white-muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: 6px;
+}
+.risk-factor-val {
+    font-family: var(--font-mono); font-size: .875rem;
+    font-weight: 600; margin-bottom: 6px;
 }
 
 /* ================================================================
