@@ -1,5 +1,7 @@
 # FRIP — Fractional Rental Investment Platform
 
+**[Live site](https://frip-rho.vercel.app)** · **[Portfolio](https://shawnjoshua03.github.io/)**
+
 A full-stack web application where users pool money to collectively invest in rental properties and receive proportional returns.
 
 ## Tech Stack
